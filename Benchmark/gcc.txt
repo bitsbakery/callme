@@ -1,0 +1,61 @@
+CPU: Ryzen Threadripper 1950x at 3.4GHz
+OS: Linux, 64-bit
+Compiler: GCC 12.2.1 x86_64
+Build: built with CMake, build variant = Release
+--------------------------------------------------------------------------
+
+ Stack-allocated delegates, inlinable target
+┌────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable      │ λ with capture │ captureless λ │ method   │ function │
+├────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ direct call    │ 5256 us        │ 5118 us       │ 5201 us  │ 5370 us  │
+│ Delegate       │ 15619 us       │ 15344 us      │ 15643 us │ 15272 us │
+│ OwningDelegate │ 15806 us       │ N/A           │ 12825 us │ N/A      │
+└────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Stack-allocated delegates, noninlinable target
+┌────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable      │ λ with capture │ captureless λ │ method   │ function │
+├────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ direct call    │ 12986 us       │ 12910 us      │ 12825 us │ 12582 us │
+│ Delegate       │ 15732 us       │ 15342 us      │ 15245 us │ 15352 us │
+│ OwningDelegate │ 15593 us       │ N/A           │ 15252 us │ N/A      │
+└────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Heap-allocated delegates, inlinable target
+┌────────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                  │ λ with capture │ captureless λ │ method   │ function │
+├────────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ Delegate on heap           │ 15259 us       │ 15091 us      │ 15096 us │ 13016 us │
+│ Delegate in object on heap │ 15192 us       │ 15131 us      │ 12623 us │ 12998 us │
+│ Delegate in vector         │ 15130 us       │ 15085 us      │ 15830 us │ 15643 us │
+└────────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Moved stack-allocated delegates, inlinable target
+┌────────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                  │ λ with capture │ captureless λ │ method   │ function │
+├────────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ Delegate(Delegate&&)       │ 15205 us       │ 15118 us      │ 15060 us │ 12583 us │
+│ Delegate(nonempty)=move()  │ 15268 us       │ 15420 us      │ 12567 us │ 12638 us │
+│ Delegate(empty)=move()     │ 15229 us       │ 15238 us      │ 12544 us │ 15096 us │
+│ ODelegate(ODelegate&&)     │ 15414 us       │ N/A           │ 12756 us │ N/A      │
+│ ODelegate(nonempty)=move() │ 15490 us       │ N/A           │ 12597 us │ N/A      │
+│ ODelegate(empty)=move()    │ 15395 us       │ N/A           │ 12551 us │ N/A      │
+└────────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Stack-allocated delegates passed to functions, inlinable target
+┌───────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                 │ λ with capture │ captureless λ │ method   │ function │
+├───────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ inline f(Delegate& d)     │ 15641 us       │ 15104 us      │ 15156 us │ 15276 us │
+│ noninlined f(Delegate& d) │ 20764 us       │ 20128 us      │ 20159 us │ 20368 us │
+└───────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Argument passing/reference forwarding (noninlinable target)
+┌─────────────┬──────────┐
+│ direct call │ 45497 us │
+│ Delegate    │ 50825 us │
+│ Event       │ 55445 us │
+└─────────────┴──────────┘
+  Stack-allocated event
+┌────────────────────────────────────┬──────────┐
+│ direct callback call, inlinable    │ 5029 us  │
+│ direct callback call, noninlinable │ 13876 us │
+│ call array of pointers, inlinable  │ 16078 us │
+│ raised event, inlinable            │ 15368 us │
+└────────────────────────────────────┴──────────┘

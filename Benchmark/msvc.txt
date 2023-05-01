@@ -1,0 +1,62 @@
+CPU: Ryzen Threadripper 1950x at 3.4GHz
+OS: Windows, 64-bit
+Compiler: Visual C++ 2022/Microsoft Visual Studio Version 17.5.3
+Build: built in Visual Studio (open Event.sln), Release/x64
+--------------------------------------------------------------------------
+
+ Stack-allocated delegates, inlinable target
+┌────────────────┬────────────────┬───────────────┬─────────┬──────────┐
+│ invocable      │ λ with capture │ captureless λ │ method  │ function │
+├────────────────┼────────────────┼───────────────┼─────────┼──────────┤
+│ direct call    │ 5467 us        │ 5440 us       │ 5420 us │ 5425 us  │
+│ Delegate       │ 5424 us        │ 5426 us       │ 5437 us │ 5428 us  │
+│ OwningDelegate │ 5547 us        │ N/A           │ 5462 us │ N/A      │
+└────────────────┴────────────────┴───────────────┴─────────┴──────────┘
+  Stack-allocated delegates, noninlinable target
+┌────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable      │ λ with capture │ captureless λ │ method   │ function │
+├────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ direct call    │ 13590 us       │ 16294 us      │ 16286 us │ 13561 us │
+│ Delegate       │ 13627 us       │ 13577 us      │ 13572 us │ 16307 us │
+│ OwningDelegate │ 13567 us       │ N/A           │ 13570 us │ N/A      │
+└────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Heap-allocated delegates, inlinable target
+┌────────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                  │ λ with capture │ captureless λ │ method   │ function │
+├────────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ Delegate on heap           │ 16325 us       │ 18804 us      │ 16302 us │ 13707 us │
+│ Delegate in object on heap │ 17021 us       │ 13610 us      │ 16356 us │ 14380 us │
+│ Delegate in vector         │ 21046 us       │ 13584 us      │ 16335 us │ 13592 us │
+└────────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Moved stack-allocated delegates, inlinable target
+┌────────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                  │ λ with capture │ captureless λ │ method   │ function │
+├────────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ Delegate(Delegate&&)       │ 5423 us        │ 5429 us       │ 5522 us  │ 5176 us  │
+│ Delegate(nonempty)=move()  │ 5424 us        │ 5445 us       │ 5427 us  │ 5162 us  │
+│ Delegate(empty)=move()     │ 13589 us       │ 13626 us      │ 13576 us │ 13562 us │
+│ ODelegate(ODelegate&&)     │ 5446 us        │ N/A           │ 5421 us  │ N/A      │
+│ ODelegate(nonempty)=move() │ 5446 us        │ N/A           │ 5322 us  │ N/A      │
+│ ODelegate(empty)=move()    │ 16277 us       │ N/A           │ 15804 us │ N/A      │
+└────────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Stack-allocated delegates passed to functions, inlinable target
+┌───────────────────────────┬────────────────┬───────────────┬──────────┬──────────┐
+│ invocable                 │ λ with capture │ captureless λ │ method   │ function │
+├───────────────────────────┼────────────────┼───────────────┼──────────┼──────────┤
+│ inline f(Delegate& d)     │ 5499 us        │ 5574 us       │ 5785 us  │ 5510 us  │
+│ noninlined f(Delegate& d) │ 19844 us       │ 20568 us      │ 19360 us │ 19162 us │
+└───────────────────────────┴────────────────┴───────────────┴──────────┴──────────┘
+  Argument passing/reference forwarding (noninlinable target)
+┌─────────────┬──────────┐
+│ direct call │ 60159 us │
+│ Delegate    │ 61571 us │
+│ Event       │ 64752 us │
+└─────────────┴──────────┘
+  Stack-allocated event
+┌────────────────────────────────────┬──────────┐
+│ direct callback call, inlinable    │ 5607 us  │
+│ direct callback call, noninlinable │ 17653 us │
+│ call array of pointers, inlinable  │ 17416 us │
+│ raised event, inlinable            │ 17739 us │
+└────────────────────────────────────┴──────────┘
+
