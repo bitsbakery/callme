@@ -18,7 +18,7 @@ jobs:
             cc: gcc-12
             cxx: g++-12
             bitness: ""
-            artifact: ${{github.workspace}}/build/Benchmark/benchmark
+            artifact: benchmark
 
           - name: "ubuntu-clang-15"
             os: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
             cc: clang-15
             cxx: clang++-15
             bitness: ""
-            artifact: ${{github.workspace}}/build/Benchmark/benchmark
+            artifact: benchmark
 
           - name: "windows-msvc-2022"
             os: windows-latest
@@ -37,7 +37,7 @@ jobs:
             bitness: "-A x64"
             cc: cl
             cxx: cl
-            artifact: ${{github.workspace}}/build/Benchmark/Release/benchmark.exe
+            artifact: Release/benchmark.exe
             
           - name: "windows-msvc-2022-x86-debug"
             os: windows-latest
@@ -46,7 +46,7 @@ jobs:
             bitness: "-A Win32"
             cc: cl
             cxx: cl
-            artifact: ${{github.workspace}}/build/Benchmark/Debug/benchmark.exe
+            artifact: Debug/benchmark.exe
 
     steps:
     - uses: actions/checkout@v3
@@ -76,5 +76,6 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
           name: benchmark-${{ matrix.config.name }}
-          path: ${{matrix.config.artifact}}
+          path: ${{github.workspace}}/build/Benchmark/${{matrix.config.artifact}}
+          if-no-files-found: error
           retention-days: 2
