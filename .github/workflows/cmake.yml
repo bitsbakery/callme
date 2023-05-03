@@ -63,7 +63,7 @@ jobs:
         CXX: ${{ matrix.config.cxx }}
       run: |
           cmake --version
-          cmake ${{ matrix.config.bitness }} -G "${{ matrix.config.generator }}" -S . -B ${{github.workspace}}/build
+          cmake ${{ matrix.config.bitness }} -G "${{ matrix.config.generator }}" -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
 
     - name: Build    
       run: cmake --build ${{github.workspace}}/build --config ${{matrix.config.build_type}}
