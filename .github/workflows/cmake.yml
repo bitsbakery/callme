@@ -17,6 +17,8 @@ jobs:
             generator: Ninja
             cc: gcc-12
             cxx: g++-12
+            bitness: ""
+            artifact: ${{github.workspace}}/build/Benchmark/benchmark
 
           - name: "ubuntu-clang-15"
             os: ubuntu-latest
@@ -25,47 +27,43 @@ jobs:
             generator: Ninja
             cc: clang-15
             cxx: clang++-15
+            bitness: ""
+            artifact: ${{github.workspace}}/build/Benchmark/benchmark
 
           - name: "windows-msvc-2022"
             os: windows-latest
             build_type: Release
             generator: "Visual Studio 17 2022"
-            bitness: x64 
+            bitness: "-A x64"
             cc: cl
             cxx: cl
+            artifact: ${{github.workspace}}/build/Benchmark/Release/benchmark.exe
             
-          - name: "windows-msvc-2022-x86-Debug"
+          - name: "windows-msvc-2022-x86-debug"
             os: windows-latest
             build_type: Debug
             generator: "Visual Studio 17 2022"
-            bitness: Win32 
+            bitness: "-A Win32"
             cc: cl
             cxx: cl
+            artifact: ${{github.workspace}}/build/Benchmark/Debug/benchmark.exe
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Install dependencies on Ubuntu
       if: startsWith(matrix.config.os, 'ubuntu')
-      shell: bash
       run: |      
         sudo apt update
         sudo apt install ${{ matrix.config.packages }} -y
 
-    - name: Configure CMake on Windows
-      if: startsWith(matrix.config.os, 'windows')
+    - name: Configure CMake
+      env:
+        CC: ${{ matrix.config.cc }}
+        CXX: ${{ matrix.config.cxx }}
       run: |
           cmake --version
-          cmake -G "${{ matrix.config.generator }}" -A ${{ matrix.config.bitness }} -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.config.build_type}}
-
-    - name: Configure CMake on Linux
-      if: startsWith(matrix.config.os, 'ubuntu')
-      run: |
-          export CC=${{ matrix.config.cc }}
-          export CXX=${{ matrix.config.cxx }}
-          ninja --version
-          cmake --version
-          cmake -G "${{ matrix.config.generator }}" -S . -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.config.build_type}}
+          cmake ${{ matrix.config.bitness }} -G "${{ matrix.config.generator }}" -S . -B ${{github.workspace}}/build
 
     - name: Build    
       run: cmake --build ${{github.workspace}}/build --config ${{matrix.config.build_type}}
@@ -74,18 +72,9 @@ jobs:
       working-directory: ${{github.workspace}}/build  
       run: ctest --verbose --no-tests=error -C ${{matrix.config.build_type}}
 
-    - name: 'Upload artifacts Linux'
-      if: startsWith(matrix.config.os, 'ubuntu')
+    - name: 'Upload artifacts'
       uses: actions/upload-artifact@v3
       with:
           name: benchmark-${{ matrix.config.name }}
-          path: ${{github.workspace}}/build/Benchmark/benchmark
-          retention-days: 5
-
-    - name: 'Upload artifacts Windows'
-      if: startsWith(matrix.config.os, 'windows')
-      uses: actions/upload-artifact@v3
-      with:
-        name: benchmark-${{ matrix.config.name }}
-        path: ${{github.workspace}}/build/Benchmark/${{matrix.config.build_type}}/benchmark.exe
-        retention-days: 5
+          path: ${{matrix.config.artifact}}
+          retention-days: 2
