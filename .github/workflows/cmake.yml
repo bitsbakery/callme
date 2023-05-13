@@ -55,7 +55,7 @@ jobs:
       if: startsWith(matrix.config.os, 'ubuntu')
       run: |      
         sudo apt update
-        sudo apt install ${{ matrix.config.packages }} -y
+        sudo apt install ${{ matrix.config.packages }}
 
     - name: Configure CMake
       env:
