@@ -1,23 +1,39 @@
 # CallMe - fast delegates and events
 
-[TOC]
+- [CallMe - fast delegates and events](#callme---fast-delegates-and-events)
+  - [Features](#features)
+  - [Known solutions/"prior art"](#known-solutionsprior-art)
+  - [How to use](#how-to-use)
+  - [Singlecast delegates](#singlecast-delegates)
+    - [Functors](#functors)
+    - [Member functions](#member-functions)
+    - [Functions](#functions)
+      - [Functions known at compile-time and static member functions](#functions-known-at-compile-time-and-static-member-functions)
+      - [Functions unknown at compile-time](#functions-unknown-at-compile-time)
+      - [Functions and calling conventions](#functions-and-calling-conventions)
+  - [Events](#events)
+    - [Subscription management](#subscription-management)
+    - [Double subscription](#double-subscription)
+  - [Compile-time errors](#compile-time-errors)
+  - [Multithreading](#multithreading)
+
 
 `CallMe` is a header-only library of fast delegates and events for C++20.
 
 ## Features
 
-* Type-erased fast delegates. The type of a target callable is erased by using a thunk function with injected template parameters.
+* Type-erased fast delegates. The target callable's type is erased by using a templated thunk function.
 * Single-cast and multi-cast delegates (aka "events")
 * Supported targets are functions, static and non-static member functions, functors (including lambda functions).
 * Single-cast delegates come in two flavors,  non-owning (aka function_ref/function reference/function_view/function view) and owning ones.
-* The delegates are very lightweight and have fixed size for holding 2 or 3 pointers.
+* The delegates are very lightweight and have a fixed size for holding 2 or 3 pointers.
 * Non-owning delegates don't allocate memory on the heap.
 * Very low overhead compared to directly calling target callables. In many cases the overhead is zero, see [benchmark](Benchmark/readme.md).
-* Easy-to-use, high performance events with low overhead compared to directly calling non-inlined targets. Events hold their callbacks in a contiguous container with user-adjustable small buffer optimization, allowing to avoid not only memory reallocation, but the use of heap memory altogether, giving better data locality and higher cache hits. Comfortably manage event subscriptions in RAII-style, unsubscribe automatically. Adjust the inline storage and run both subscription and unsubscription in O(1) time.
+ Easy-to-use, high performance events with low overhead compared to directly calling non-inlined targets. Events hold their callbacks in a contiguous container with user-adjustable small buffer optimization, allowing to avoid not only memory reallocation, but the use of heap memory altogether, giving better data locality and higher cache hits. Comfortably manage event subscriptions RAII-style, unsubscribe automatically. Adjust the inline storage and run both subscription and unsubscription in O(1) time.
 * Meaningful compiler errors. The library tries hard to make most likely compile-time errors caused by invalid use of its API readable and meaningful to users, despite heavy template metaprogramming involved.
 * Minimal and compact implementation. The library provides a very thin abstraction layer over raw function pointers. A lot of source code implements zero-cost abstractions and checks that work at compile-time, leaving minimal code executable at runtime. This makes intentions transparent for optimizers, that are often able to fully optimize away all library code at the place of invocation, inline the callable target, and give **zero overhead compared to directly calling the inlined callable target**. See [benchmark](Benchmark/readme.md).  
-* Powerful type deduction. The library heavily relies on C++17 features for CTAD, and adds lots of deduction guides. All single-cast delegates can deduce a proper signature from a target callable. Avoid redundancy and duplicate code by leaning on type deduction.
-* Factory functions for delegates. In addition to overloaded constructors of delegates, there is a set of factory functions covering all the constructor overloads. Factories like `fromFunction(...)` or `fromFunctor(...)` narrow-down the overload resolution set for a particular class of targets. The factories are syntactically cleaner and easier to use than delegate constructors, especially for new users.
+* Powerful type deduction. The library heavily relies on C++17 features for CTAD, and adds lots of deduction guides. All single-cast delegates can deduce a proper signature from a target callable. Avoid duplicate code by leaning on type deduction.
+* Factory functions for delegates. In addition to overloaded constructors of delegates, there is a set of factory functions covering all the constructor overloads. Factories like `fromFunction(...)` or `fromFunctor(...)` narrow down the overload resolution set for a particular class of targets. The factories are syntactically cleaner and easier to use than delegate constructors, especially for new users.
 * The library heavily relies on C++20 constrains and concepts, which simplifies the implementation, adds to code clarity and maintainability. While there is nothing that prevents porting the library to C++17 and SFINAE, this is a non-goal.
 * Equality testing for delegates is a non-goal. Due to implementation details, there is no single universally acceptable definition of "equal" delegates. If you need it, you will have to implement equality testing for your particular special case yourself.
 * Thorough tests (functional tests, tests for invalid uses of API, benchmarks) give a good base for regression testing. People who want to hack, e.g. to fine-tune performance for special cases, will have a productive start.
@@ -78,11 +94,11 @@ The following compilers have been tested and can compile and pass all `CallMe` t
 
 ## Singlecast delegates
 
-*`CallMe` has extensive functional tests where there are many examples covering all supported overloads and features.*
+*`CallMe` has extensive functional tests with many examples covering all supported overloads and features.*
 
 There are two kinds of singlecast delegates, `Delegate<...>` and `OwningDelegate<...>`.
 
-Delegates are called using `operator()` or `invoke(...)` member functions. Both functions are identical. 
+Delegates are called using the `operator()` or `invoke(...)` member functions. Both functions are identical. 
 
 `Delegate<...>` does not own target callables and references them through pointers. `Delegate<...>` is in the same category as `function_ref` from proposal p0792. When working with `Delegate<...>`, you have to make sure that all referenced targets are valid/alive for as long as you need to call them through `Delegate<...>`. 
 
@@ -114,9 +130,9 @@ Delegate delegate2(&lambda);
 auto delegate3 = fromFunctor(&lambda);
 ```
 
-`delegate1` has explicitly declared signature, `delegate2` and `delegate3` have the same signature deduced. These three basic ways of constructing a delegate are available for both `Delegate<...>` and `OwningDelegate<...>` and all kinds of targets.
+`delegate1` has an explicitly declared signature, `delegate2` and `delegate3` have the same signature deduced. These three basic ways of constructing a delegate are available for both `Delegate<...>` and `OwningDelegate<...>` and all kinds of targets.
 
-Notice that `lambda` is a variable instantiated before delegates. `Delegate<...>` does not own targets, it can only reference existing targets, and you have to make sure that the targets are alive for as long as you invoke them via a `Delegate<...>`.  The `lambda` variable with automatic storage duration in the sample above is a simple way for the target to span the lifetime of `Delegate<...>` objects that have automatic storage duration as well, but such cases are uncommon for real-life scenarios. A more realistic use case is [saving a lambda in a class member variable](https://stackoverflow.com/a/32280985) next to the member variable that holds `Delegate<...>` itself. Do not use resource-heavy `std::function` for storing a lambda as [some other answers suggest](https://stackoverflow.com/a/9186537). That fully undermines the purpose of `CallMe` - to be a library of fast delegates intended to replace and surpass `std::function` both in usability and performance.
+Notice that `lambda` is a variable instantiated before delegates. `Delegate<...>` does not own targets, it can only reference existing targets, and you have to make sure that the targets are alive for as long as you invoke them via a `Delegate<...>`.  The `lambda` variable with automatic storage duration in the sample above is a simple way for the target to span the lifetime of `Delegate<...>` objects that have automatic storage duration as well, but such cases are uncommon for real-life scenarios. A more realistic use case is [saving a lambda in a class member variable](https://stackoverflow.com/a/32280985) next to the member variable that holds `Delegate<...>` itself. Do not use the resource-heavy `std::function` for storing a lambda as [some other answers suggest](https://stackoverflow.com/a/9186537). That fully undermines the purpose of `CallMe` - to be a library of fast delegates intended to replace and surpass `std::function` both in usability and performance.
 
 `Delegate<...>` does not accept r-value references to targets:
 
@@ -158,7 +174,7 @@ Other ways to allocate a lambda on the heap usually cause:
 Using `new auto` right at the argument site prevents a possible leaked pointer if an exception is thrown after a target is instantiated but before the pointer is passed to `OwningDelegate<...>`.
 
 ###  Member functions
-Unlike functors, targeting member functions requires also specifying the member function to be called:
+Unlike functors, targeting member functions requires also specifying a member function to be called:
 ```cpp
 TestObject target;
 Delegate<int(int i)> delegate1(&target, tag<&TestObject::set>());
@@ -187,7 +203,7 @@ auto get2 = fromMethodOwned<&TestObject::get>(new TestObject);
 
 Target member functions may be virtual. Calling virtual functions via `CallMe` delegates does not preclude their virtual dispatch. 
 
-const-member functions are supported, but delegate signatures do not include `const` in such cases. The same applies to lambda-functions with mutable and implicitly-const `operator()`: delegate signatures do not reflect such differences.
+const-member functions are supported, but delegate signatures do not include `const` in such cases. The same applies to lambda-functions with a mutable and implicitly-const `operator()`: delegate signatures do not reflect such differences.
 
 ### Functions
 
@@ -227,7 +243,7 @@ In the following cases
 
 * a function is implemented by a library or operating system and is loaded from a DLL at runtime 
 
-* runtime-logic selects a function from several candidates at runtime
+* runtime logic selects a function from several candidates at runtime
 
 all you have is a pointer to function with a known signature, and what the pointer points to becomes known at runtime. For such cases there are special constructor and factory overloads that accept pointers to functions as parameters:
 
@@ -291,7 +307,7 @@ The `Signature` is what all subscribed callbacks will have to match to. The retu
 
 `Event<...>` uses a vector-like container with a small-buffer optimization to store subscriptions. This vector container stores its elements inline if there are up to `ExpectedSubscriptions` (template parameter of `Event<...>`) subscriptions. For higher number of subscriptions the container allocates space on the heap and moves subscriptions from inline storage to the heap.
 
-Skillful use of `ExpectedSubscriptions` allows to squeeze maximal performance out of `Event<...>` and your hardware. Properly adjusting `ExpectedSubscriptions` allows to fully avoid reallocation while subscribing and makes both subscribing and unsubscribing [a single callback] an O(1) operation. If such an `Event<...>` is stack-allocated, it is completely heap-free. The performance of raising/invoking an `Event<...>` additionally benefits from data locality and compiler optimizations of inline storage.
+Skillful use of `ExpectedSubscriptions` allows to squeeze maximal performance out of `Event<...>` and your hardware. Properly adjusting `ExpectedSubscriptions` allows to fully avoid reallocation while subscribing and makes both subscribing and unsubscribing [a single callback] an O(1) operation. If such an `Event<...>` is stack-allocated, it is completely heap-free. The performance of raising/invoking an `Event<...>` additionally benefits from the data locality and compiler optimizations of inline storage.
 
 There are cases when storing subscriptions inline is not possible or undesirable, for example:
 
@@ -306,7 +322,7 @@ In order to use heap storage:
 
 Using `reserve(unsigned expectedSubscriptions)` or `Event(unsigned expectedSubscriptions)` makes sense only for `expectedSubscriptions > ExpectedSubscriptions`. Whenever `expectedSubscriptions <= ExpectedSubscriptions`, inline storage is used, and it makes no sense to reserve anything.
 
-For details and examples of using `ExpectedSubscriptions` and `reserve(...)`, see tests and reference comments in source code of `Event<...>`.
+For details and examples of using `ExpectedSubscriptions` and `reserve(...)`, see tests and reference comments in the source code of `Event<...>`.
 
 ### Subscription management
 
@@ -330,7 +346,7 @@ Subscriber alice;
 Subscription subscription = event.subscribe(makeCallback(alice));
 ```
 
-The returned `Subscription` object is a RAII-wrapper for managing the lifetime of the subscription. Whenever `Subscription` is destroyed, it unsubscribes the callback it "manages". `Subscription` objects are allowed to outlive the event they originate from, in which case they do not unsubscribe from a destroyed event.
+The returned `Subscription` object is a RAII-wrapper for managing the lifetime of the subscription. Whenever `Subscription` is destroyed, it unsubscribes the callback it "manages". `Subscription` objects are allowed to outlive the event they originate from, in which case they do not unsubscribe from the destroyed event.
 
 Usually an object such as `Subscriber` in the sample above subscribes its member-function to an `Event<...>` in its constructor and the subscription needs to last for the lifetime of `Subscriber`. In this case, store `Subscription` in a member variable of `Subscriber`:
 
@@ -353,7 +369,7 @@ Subscriber alice(event);
 ```
 The sample above does not require any additional explicit actions with `alice.subscription`, and the subscribed target (`alice`) is alive/valid for the whole lifetime of the subscription - by design.
 
-`Subscription` does not have a default constructor, so all member variables of `Subscription` type must be initialized in a member initializer list as shown above. If you need to weaken this requirement in order to have `Subscription` member variables that may be initialized later and/or optionally, wrap a subscription in `std::optional`:
+`Subscription` does not have a default constructor, so all member variables of the `Subscription` type must be initialized in a member initializer list as shown above. If you need to weaken this requirement in order to have `Subscription` member variables that may be initialized later and/or optionally, wrap a subscription in `std::optional`:
 
 ```cpp
 struct Subscriber
@@ -406,9 +422,9 @@ alice.subscriptions.clear();
 
 To recap:
 
-* If there are several subscriptions and they don't require custom lifetime management, use a member variable of `std::vector<Subscription>` type
-* If a subscription requires custom lifetime management, use a member variable of `std::optional<Subscription>` type
-* If there is a single subscription that does not require custom lifetime management, use a member variable of `Subscription` type
+* If there are several subscriptions and they don't require custom lifetime management, use a member variable of the `std::vector<Subscription>` type
+* If a subscription requires custom lifetime management, use a member variable of the `std::optional<Subscription>` type
+* If there is a single subscription that does not require custom lifetime management, use a member variable of the `Subscription` type
 
 ### Double subscription
 
@@ -426,7 +442,7 @@ event.subscribe(makeCallback(alice), subscriptions);
 event.raise();//alice is notified twice
 ```
 
-If you store a subscription in a member variable of `Subscription` type, then subscription is unconditional and always takes place in a member initializer list of one of constructors, so there is no such problem as possible double subscription.
+If you store a subscription in a member variable of the `Subscription` type, then subscription is unconditional and always takes place in a member initializer list of one of constructors, so there is no such problem as possible double subscription.
 
 If subscription logic runs after constructors and you anticipate a possible double subscription, you have to guard against it using any means external to `Event<...>`. For example, if a subscription is stored in `std::optional<Subscription>`, the guard might be like:
 
@@ -461,11 +477,11 @@ For `Delegate<...>`, mutable operations are construction/destruction, copy const
 
 For `OwningDelegate<...>`, mutable operations are construction/destruction, move construction and assignment.
 
-For `Event<...>`, mutable operations are construction/destruction, move construction and assignment, subscribing/unsubscribing callbacks to/from events, functions `.reserve(...)` and `.clear()`, move-construction and move-assignment of `Subscription` objects, destruction of `Subscription` objects (causes unsubscription/mutates the event).
+For `Event<...>`, mutable operations are construction/destruction, move construction and assignment, subscribing/unsubscribing callbacks to/from events, the functions `.reserve(...)` and `.clear()`, move-construction and move-assignment of `Subscription` objects, destruction of `Subscription` objects (causes unsubscription/mutates the event).
 
-If the listed mutable operations are invoked for the same object on more than one thread at a time, that certainly will wreak havoc.
+If the listed mutable operations are invoked on the same object on more than one thread at a time, that certainly will wreak havoc.
 
-However, invoking delegates with functions `.invoke(...)` and `operator()`, and invoking `Event<...>` with functions `.raise()` and `operator()` are immutable operations for `Delegate<...>`/`OwningDelegate<...>`/`Event<...>` themselves. Invoking the same delegate/event object on more than one thread at a time will not break that delegate/event object. But this says nothing about the targets and their ability to cope with such multithreaded calls. For example, if a target somehow protects itself with synchronization primitives, or its invocation does not mutate the target itself, or the target is fully stateless, then its multithreaded invocation via `CallMe` is safe.
+However, invoking delegates with the functions `.invoke(...)` and `operator()`, and invoking `Event<...>` with the functions `.raise()` and `operator()` are immutable operations for `Delegate<...>`/`OwningDelegate<...>`/`Event<...>` themselves. Invoking the same delegate/event object on more than one thread at a time will not break that delegate/event object. But this says nothing about the targets and their ability to cope with such multithreaded calls. For example, if a target somehow protects itself with synchronization primitives, or its invocation does not mutate the target itself, or the target is fully stateless, then its multithreaded invocation via `CallMe` is safe.
 
 `CallMe` currently does not mark `invoke(...)`/`operator()`/`raise()` with the `const` qualifier, keeping transitive immutability in mind: some targets may mutate themselves when invoked via delegates, but it is their business. Lifting const-correctness from targets up to the level of delegates/events would complicate the implementation of the latter. For example, `Event<...>` currently can have many subscribed callbacks, some of which may mutate their subscribers while others may not. Strict implementation of const-correctness in `Event<...>` would require separately subscribing const- and mutable targets (with different `subscribe(...)` overloads), having two separate `raise()` functions for const- and mutable cases. The abstraction of const-correctness seems to be too expensive and wrong for `CallMe` (counter arguments are accepted).
 
