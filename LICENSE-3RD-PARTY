@@ -1,0 +1,37 @@
+Implementation
+----------------------------------------------------------
+* CallMe <https://github.com/bitsbakery/CallMe>
+Fast delegates and events
+Copyright (c) 2023 Dmitry Kim
+MIT License, <https://opensource.org/licenses/MIT>
+
+* small_vector <https://github.com/gharveymn/small_vector>
+Vector container with a small buffer optimization
+Copyright (c) 2020-2021 Gene Harvey
+MIT License, <https://opensource.org/licenses/MIT>
+
+Testing
+----------------------------------------------------------
+* doctest <https://github.com/doctest/doctest>
+C++ testing framework
+Copyright (c) 2016-2023 Viktor Kirilov
+MIT License, <https://opensource.org/licenses/MIT>
+
+* Delegate <https://github.com/bitwizeshift/Delegate>
+Fast delegates
+Copyright (c) 2017, 2018, 2020-2021 Matthew Rodusek
+Boost Software License, Version 1.0, <https://www.boost.org/LICENSE_1_0.txt>
+
+* pretty <https://github.com/bitsbakery/pretty>
+Table pretty printing
+Copyright (c) 2023 Dmitry Kim
+MIT License, <https://opensource.org/licenses/MIT>
+
+* wcwidth/wcswidth <http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c>
+Unicode display width utilities
+Copyright (c) 2007 Markus Kuhn
+
+* unicode_display_width <https://github.com/p-ranav/unicode_display_width>
+Unicode display width utilities
+Copyright (c) 2023 Pranav Srinivas Kumar
+MIT License, <https://opensource.org/licenses/MIT>
