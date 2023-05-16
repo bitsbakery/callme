@@ -80,9 +80,11 @@ By 2023, almost every large well-known C++ project, such as a GUI framework or a
 
 ## How to use
 
-`CallMe` is a header-only library. If you need only [singlecast] delegates, copy `small_vector.h` and `CallMe.h` to your project directory and #include `CallMe.h`. 
+`CallMe` is a header-only library. 
 
-If you need events, copy `small_vector.h`, `CallMe.h`, `CallMe.Event.h` to your project directory and #include `CallMe.Event.h`. The latter includes `CallMe.h`, so after including `CallMe.Event.h` you can use both delegates and events.
+* To use only [singlecast] delegates: copy `CallMe.h` to your project directory and `#include CallMe.h`.
+
+* To use events: copy `small_vector.h`, `CallMe.h`, `CallMe.Event.h` to your project directory and `#include CallMe.Event.h`. The latter includes `CallMe.h`, so including `CallMe.Event.h` gives access to singlecast delegates and events.
 
 The public API is in the namespace `CallMe`. 
 
@@ -100,7 +102,7 @@ There are two kinds of singlecast delegates, `Delegate<...>` and `OwningDelegate
 
 Delegates are called using the `operator()` or `invoke(...)` member functions. Both functions are identical. 
 
-`Delegate<...>` does not own target callables and references them through pointers. `Delegate<...>` is in the same category as `function_ref` from proposal p0792. When working with `Delegate<...>`, you have to make sure that all referenced targets are valid/alive for as long as you need to call them through `Delegate<...>`. 
+`Delegate<...>` does not own target callables and references them through pointers. `Delegate<...>` is in the same category as `function_ref` from proposal p0792. When working with `Delegate<...>`, you have to make sure that all referenced targets are valid/alive for as long as you need to call them via `Delegate<...>`. 
 
 `OwningDelegate<...>` owns its targets, so it is always safe to call `OwningDelegate<...>`.  The ownership is exclusive, similar to `unique_ptr`. That is why `OwningDelegate<...>` cannot be copied, it is a move-only type like `unique_ptr`. 
 
@@ -312,7 +314,7 @@ Skillful use of `ExpectedSubscriptions` allows to squeeze maximal performance ou
 There are cases when storing subscriptions inline is not possible or undesirable, for example:
 
 * There are too many subscriptions, while an event is allocated on the stack. Trying to store subscriptions inline would cause stack overflow.
-* Move construction and move-assignment of events with inline storage of subscriptions is as expensive as copy construction and copy-assignment. If there are many subscriptions and you need to move-construct or move-assign such "heavy" events, using heap and a level of indirection instead of inline storage switches the complexity of move operations from O(N) to O(1) for N subscriptions.
+* Move construction and move-assignment of events with inline storage of subscriptions is as expensive as copy construction and copy-assignment. If there are many subscriptions and you need to move-construct or move-assign such "heavy" events, using heap and a level of indirection instead of inline storage allows to avoid deep-copying of subscriptions.
 
 In order to use heap storage:
 
@@ -395,7 +397,7 @@ alice.optionalSubscription.reset();
 
 The use of `std::optional ` around `Subscription` objects also allows to explicitly unsubscribe without waiting for `Subscriber` to be destroyed. 
 
-If `Subscriber` manages more than one subscription, it may be convenient to store all subscriptions in `std::vector<Subscription>`. `Event<...>` provides an overload of `subscribe(...)` that accepts by reference a vector of subscriptions and pushes the new subscription into the vector before returning:
+If `Subscriber` manages more than one subscription, it may be convenient to store all subscriptions in `std::vector<Subscription>`. `Event<...>` provides an overload of `subscribe(...)` that accepts by reference a vector of subscriptions and emplaces the new subscription into the vector before returning:
 ```cpp
 struct Subscriber
 {
@@ -444,7 +446,7 @@ event.raise();//alice is notified twice
 
 If you store a subscription in a member variable of the `Subscription` type, then subscription is unconditional and always takes place in a member initializer list of one of constructors, so there is no such problem as possible double subscription.
 
-If subscription logic runs after constructors and you anticipate a possible double subscription, you have to guard against it using any means external to `Event<...>`. For example, if a subscription is stored in `std::optional<Subscription>`, the guard might be like:
+If subscription logic runs after constructors and you anticipate possible double subscription, you have to guard against it using any means external to `Event<...>`. For example, if a subscription is stored in `std::optional<Subscription>`, the guard might be like:
 
 ```cpp
 Event event;
