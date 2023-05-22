@@ -102,7 +102,7 @@ There are two kinds of singlecast delegates, `Delegate<...>` and `OwningDelegate
 
 Delegates are called using the `operator()` or `invoke(...)` member functions. Both functions are identical. 
 
-`Delegate<...>` does not own target callables and references them through pointers. `Delegate<...>` is in the same category as `function_ref` from proposal p0792. When working with `Delegate<...>`, you have to make sure that all referenced targets are valid/alive for as long as you need to call them via `Delegate<...>`. 
+`Delegate<...>` does not own target callables, it references them through pointers. `Delegate<...>` is in the same category as `function_ref` from proposal p0792. When working with `Delegate<...>`, you have to make sure that all referenced targets are valid/alive for as long as you need to call them via `Delegate<...>`. 
 
 `OwningDelegate<...>` owns its targets, so it is always safe to call `OwningDelegate<...>`. The ownership is exclusive, similar to `unique_ptr`. That is why `OwningDelegate<...>` cannot be copied, it is a move-only type like `unique_ptr`. 
 
